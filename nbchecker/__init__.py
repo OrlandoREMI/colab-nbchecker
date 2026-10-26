@@ -1,4 +1,5 @@
 from .checker import Checker
+from .fundamentos import CheckerFundamentos
 
-__all__ = ["Checker"]
-__version__ = "0.1.0"
+__all__ = ["Checker", "CheckerFundamentos"]
+__version__ = "0.2.0"

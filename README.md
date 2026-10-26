@@ -1,6 +1,9 @@
 # colab-nbchecker
 
-Verificador automático de ejercicios de Pandas para el mini proyecto de KPIs.
+Verificadores automáticos de ejercicios para Google Colab:
+
+- `Checker` — Mini proyecto de KPIs con Pandas.
+- `CheckerFundamentos` — Tarea 1: fundamentos de Python (if, for, while, listas, diccionarios, funciones).
 
 ## Instalación en Google Colab
 
@@ -35,3 +38,49 @@ checker.verificar_6(ventas_mensuales)
 | `verificar_4` | Serie de ingresos por producto, ordenada descendente |
 | `verificar_5` | DataFrame con agg múltiple: suma, conteo y promedio por producto |
 | `verificar_6` | Serie de ventas mensuales con índice DatetimeIndex |
+
+---
+
+## Tarea 1 — Fundamentos de Python (`CheckerFundamentos`)
+
+### Uso en Colab (alumno)
+
+```python
+from nbchecker import CheckerFundamentos
+checker = CheckerFundamentos()
+
+checker.verificar_1(total_a_pagar)
+checker.verificar_2(nivel_lealtad)
+checker.verificar_3(venta_lunes, venta_domingo, fin_de_semana)
+checker.verificar_4(total_semana, promedio_diario)
+checker.verificar_5(dias_buenos, mejor_dia)
+checker.verificar_6(precio_capuchino, menu_actualizado)
+checker.verificar_7(por_reabastecer, total_unidades)
+checker.verificar_8(meses_para_meta)
+checker.verificar_9(calcular_ticket)
+checker.verificar_10(resumen_pedidos)
+checker.resumen()
+```
+
+El feedback solo indica si cada ejercicio **pasó** o **no pasó** las comprobaciones.
+Las funciones (ejercicios 2, 8, 9 y 10) se prueban con casos adicionales que el alumno no ve,
+y cada llamada se corta a los 3 segundos para proteger contra ciclos infinitos.
+
+### Calificación automática (CLI)
+
+```bash
+python -m nbchecker.fundamentos.calificar --notebook entrega.ipynb --config config.json
+```
+
+Imprime un único JSON en stdout:
+
+```json
+{"grade": 80.0, "feedback": "Ejercicio 1 (...): ✅ pasó\n...", "aprobados": 8, "total": 10,
+ "detalle": {"1": true, "2": false, "...": true}}
+```
+
+`config.json` es opcional: `{"max_grade": 100, "timeout_celda": 10, "timeout_total": 180}`.
+
+El calificador ejecuta las celdas de código del alumno en un proceso aparte (sin las celdas del
+checker ni los comandos `!`/`%`), con límite de tiempo por celda, y corre exactamente las mismas
+pruebas que ve el alumno (`nbchecker/fundamentos/pruebas.py`).
