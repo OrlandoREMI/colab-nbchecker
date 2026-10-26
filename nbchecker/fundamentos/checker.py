@@ -7,7 +7,7 @@ No revela respuestas esperadas ni da pistas.
 Uso:
     from nbchecker import CheckerFundamentos
     checker = CheckerFundamentos()
-    checker.verificar_1(total_a_pagar)
+    checker.verificar_1(total_a_pagar)   # se pasa la función, sin paréntesis
     ...
     checker.resumen()
 """
@@ -32,7 +32,7 @@ class CheckerFundamentos:
         else:
             print(f"❌ Ejercicio {n} — {titulo}: no pasó las comprobaciones.")
 
-    # ── un método por ejercicio ─────────────────────────────────────────────
+    # ── un método por ejercicio (cada uno recibe la función del alumno) ──────
 
     def verificar_1(self, total_a_pagar):
         self._registrar(1, total_a_pagar)
@@ -40,20 +40,20 @@ class CheckerFundamentos:
     def verificar_2(self, nivel_lealtad):
         self._registrar(2, nivel_lealtad)
 
-    def verificar_3(self, venta_lunes, venta_domingo, fin_de_semana):
-        self._registrar(3, venta_lunes, venta_domingo, fin_de_semana)
+    def verificar_3(self, resumen_semana):
+        self._registrar(3, resumen_semana)
 
-    def verificar_4(self, total_semana, promedio_diario):
-        self._registrar(4, total_semana, promedio_diario)
+    def verificar_4(self, promedio_ventas):
+        self._registrar(4, promedio_ventas)
 
-    def verificar_5(self, dias_buenos, mejor_dia):
-        self._registrar(5, dias_buenos, mejor_dia)
+    def verificar_5(self, dias_buenos):
+        self._registrar(5, dias_buenos)
 
-    def verificar_6(self, precio_capuchino, menu_actualizado):
-        self._registrar(6, precio_capuchino, menu_actualizado)
+    def verificar_6(self, actualizar_menu):
+        self._registrar(6, actualizar_menu)
 
-    def verificar_7(self, por_reabastecer, total_unidades):
-        self._registrar(7, por_reabastecer, total_unidades)
+    def verificar_7(self, por_reabastecer):
+        self._registrar(7, por_reabastecer)
 
     def verificar_8(self, meses_para_meta):
         self._registrar(8, meses_para_meta)

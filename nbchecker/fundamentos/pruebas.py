@@ -5,7 +5,11 @@ Este módulo es la ÚNICA fuente de verdad de las pruebas. Lo usan:
   - CheckerFundamentos (el alumno lo ejecuta en Colab)
   - calificar.py (calificación automática por CLI / GitHub Actions)
 
-Cada prueba recibe los objetos del alumno y regresa True (pasó) o False (no pasó).
+Todos los ejercicios son funciones: cada prueba llama a la función del alumno
+con varios casos (incluidos casos que el alumno no ve) y la compara contra una
+solución de referencia. Además verifica que la función no modifique lo que recibe.
+
+Cada prueba recibe la función del alumno y regresa True (pasó) o False (no pasó).
 Nunca lanza excepciones hacia afuera: cualquier error del código del alumno cuenta
 como "no pasó".
 """
@@ -37,8 +41,6 @@ INVENTARIO = {
     "Canela": 0,
     "Chocolate": 7,
 }
-TOTAL_PEDIDO = 185
-ES_FRECUENTE = True
 
 TIEMPO_MAXIMO_FUNCION = 3  # segundos por llamada a una función del alumno
 
@@ -99,6 +101,12 @@ def _seguro(prueba):
 # Soluciones de referencia (privadas)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _ref_total_a_pagar(total_pedido, es_frecuente):
+    if es_frecuente and total_pedido >= 150:
+        return total_pedido * 0.9
+    return total_pedido
+
+
 def _ref_nivel(puntos):
     if puntos < 100:
         return "Bronce"
@@ -107,6 +115,37 @@ def _ref_nivel(puntos):
     elif puntos < 600:
         return "Oro"
     return "Platino"
+
+
+def _ref_resumen_semana(ventas):
+    return {"primera": ventas[0], "ultima": ventas[-1], "fin_de_semana": ventas[-2:]}
+
+
+def _ref_promedio(ventas):
+    if len(ventas) == 0:
+        return 0
+    total = 0
+    for v in ventas:
+        total += v
+    return total / len(ventas)
+
+
+def _ref_dias_buenos(dias, ventas, minimo):
+    return [dias[i] for i in range(len(dias)) if ventas[i] >= minimo]
+
+
+def _ref_actualizar_menu(menu, producto, nuevo_precio):
+    nuevo = dict(menu)
+    if nuevo_precio == 0:
+        if producto in nuevo:
+            del nuevo[producto]
+    else:
+        nuevo[producto] = nuevo_precio
+    return nuevo
+
+
+def _ref_reabastecer(inventario, minimo):
+    return [k for k, v in inventario.items() if v < minimo]
 
 
 def _ref_meses(meta, ahorro_mensual):
@@ -138,93 +177,135 @@ def _ref_resumen(pedidos, menu):
     return {"num_pedidos": len(pedidos), "total_vendido": total, "cliente_top": top}
 
 
+def _probar(func, casos, comparar):
+    """Llama func con cada caso (copias profundas), compara contra la referencia
+    y verifica que la función no modifique lo que recibe."""
+    if not callable(func):
+        return False
+    for args, esperado in casos:
+        copia = copy.deepcopy(args)
+        resultado = _llamar_con_limite(func, *copia)
+        if not comparar(resultado, esperado):
+            return False
+        if copia != args:
+            return False
+    return True
+
+
+def _igual(a, b):
+    return type(a) is type(b) and a == b if isinstance(b, (list, dict)) else a == b
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Pruebas por ejercicio
 # ─────────────────────────────────────────────────────────────────────────────
 
 @_seguro
 def prueba_1(total_a_pagar):
-    """Descuento de 10% si es cliente frecuente Y el total es >= 150."""
-    esperado = TOTAL_PEDIDO * 0.9 if (ES_FRECUENTE and TOTAL_PEDIDO >= 150) else TOTAL_PEDIDO
-    return _num_igual(total_a_pagar, esperado)
+    """if con dos condiciones (and); límite exacto en 150."""
+    entradas = [
+        (185, True), (185, False), (150, True), (149.99, True),
+        (150, False), (0, True), (1000, True), (90, False),
+    ]
+    casos = [(e, _ref_total_a_pagar(*e)) for e in entradas]
+    return _probar(total_a_pagar, casos, _num_igual)
 
 
 @_seguro
 def prueba_2(nivel_lealtad):
-    """Función con if/elif/else; se prueba en los límites de cada nivel."""
-    if not callable(nivel_lealtad):
-        return False
-    casos = [0, 50, 99, 100, 250, 299, 300, 450, 599, 600, 1500]
-    return all(
-        _llamar_con_limite(nivel_lealtad, p) == _ref_nivel(p) for p in casos
-    )
+    """if/elif/else; se prueba en los límites de cada nivel."""
+    entradas = [0, 50, 99, 100, 250, 299, 300, 450, 599, 600, 1500]
+    casos = [((p,), _ref_nivel(p)) for p in entradas]
+    return _probar(nivel_lealtad, casos, lambda r, e: r == e)
 
 
 @_seguro
-def prueba_3(venta_lunes, venta_domingo, fin_de_semana):
-    return (
-        venta_lunes == VENTAS_SEMANA[0]
-        and venta_domingo == VENTAS_SEMANA[-1]
-        and isinstance(fin_de_semana, list)
-        and fin_de_semana == VENTAS_SEMANA[-2:]
-    )
+def prueba_3(resumen_semana):
+    """Índices positivos, negativos y slicing."""
+    entradas = [
+        VENTAS_SEMANA,
+        [100, 200],
+        [5, 4, 3, 2, 1],
+        [700, 700, 900, 300, 1200, 50],
+    ]
+    casos = [((list(v),), _ref_resumen_semana(v)) for v in entradas]
+
+    def comparar(r, e):
+        return (
+            isinstance(r, dict)
+            and set(r.keys()) == set(e.keys())
+            and r["primera"] == e["primera"]
+            and r["ultima"] == e["ultima"]
+            and _igual(r["fin_de_semana"], e["fin_de_semana"])
+        )
+    return _probar(resumen_semana, casos, comparar)
 
 
 @_seguro
-def prueba_4(total_semana, promedio_diario):
-    total = sum(VENTAS_SEMANA)
-    return _num_igual(total_semana, total) and _num_igual(
-        promedio_diario, total / len(VENTAS_SEMANA)
-    )
+def prueba_4(promedio_ventas):
+    """for con acumulador; lista vacía regresa 0."""
+    entradas = [VENTAS_SEMANA, [100], [10, 20, 30, 45], [], [0, 0, 0], [999, 1]]
+    casos = [((list(v),), _ref_promedio(v)) for v in entradas]
+    return _probar(promedio_ventas, casos, _num_igual)
 
 
 @_seguro
-def prueba_5(dias_buenos, mejor_dia):
-    esperado_buenos = [d for d, v in zip(DIAS, VENTAS_SEMANA) if v >= 1500]
-    esperado_mejor = DIAS[VENTAS_SEMANA.index(max(VENTAS_SEMANA))]
-    return (
-        isinstance(dias_buenos, list)
-        and dias_buenos == esperado_buenos
-        and mejor_dia == esperado_mejor
-    )
+def prueba_5(dias_buenos):
+    """for + if recorriendo dos listas en paralelo; respeta el orden."""
+    entradas = [
+        (DIAS, VENTAS_SEMANA, 1500),
+        (DIAS, VENTAS_SEMANA, 1430),       # límite exacto (>=)
+        (DIAS, VENTAS_SEMANA, 5000),       # ninguno
+        (DIAS, VENTAS_SEMANA, 0),          # todos
+        (["Ene", "Feb", "Mar"], [10, 50, 30], 30),
+        ([], [], 100),
+    ]
+    casos = [((list(d), list(v), m), _ref_dias_buenos(d, v, m)) for d, v, m in entradas]
+    return _probar(dias_buenos, casos, _igual)
 
 
 @_seguro
-def prueba_6(precio_capuchino, menu_actualizado):
-    esperado = dict(MENU)
-    esperado["Americano"] = 38
-    esperado["Té matcha"] = 55
-    del esperado["Frappé"]
-    return (
-        precio_capuchino == MENU["Capuchino"]
-        and isinstance(menu_actualizado, dict)
-        and menu_actualizado == esperado
-    )
+def prueba_6(actualizar_menu):
+    """Leer, cambiar, agregar y eliminar llaves; regresa un menú nuevo."""
+    entradas = [
+        (MENU, "Americano", 38),           # cambiar precio
+        (MENU, "Té matcha", 55),           # agregar
+        (MENU, "Frappé", 0),               # eliminar
+        (MENU, "Malteada", 0),             # eliminar algo que no existe
+        ({}, "Latte", 50),                 # menú vacío
+        ({"Té": 20}, "Té", 0),             # queda vacío
+    ]
+    casos = [((dict(m), p, n), _ref_actualizar_menu(m, p, n)) for m, p, n in entradas]
+    return _probar(actualizar_menu, casos, _igual)
 
 
 @_seguro
-def prueba_7(por_reabastecer, total_unidades):
-    esperado = [k for k, v in INVENTARIO.items() if v < 5]
-    return (
-        isinstance(por_reabastecer, list)
-        and sorted(por_reabastecer) == sorted(esperado)
-        and len(por_reabastecer) == len(esperado)
-        and total_unidades == sum(INVENTARIO.values())
-    )
+def prueba_7(por_reabastecer):
+    """for sobre .items() + if; el orden de la lista no importa."""
+    entradas = [
+        (INVENTARIO, 5),
+        (INVENTARIO, 1),                   # límite: solo los que tienen 0
+        (INVENTARIO, 100),                 # todos
+        (INVENTARIO, 0),                   # ninguno
+        ({"Leche": 4, "Vasos": 4, "Tapas": 5}, 5),
+        ({}, 10),
+    ]
+    casos = [((dict(i), m), _ref_reabastecer(i, m)) for i, m in entradas]
+
+    def comparar(r, e):
+        return isinstance(r, list) and len(r) == len(e) and sorted(r) == sorted(e)
+    return _probar(por_reabastecer, casos, comparar)
 
 
 @_seguro
 def prueba_8(meses_para_meta):
-    if not callable(meses_para_meta):
-        return False
-    casos = [
+    """while; incluye meta 0 y metas exactas."""
+    entradas = [
         (18000, 1500), (1000, 300), (500, 500), (0, 200),
         (100, 250), (7000, 1200), (12345, 1000), (1, 1),
     ]
-    return all(
-        _llamar_con_limite(meses_para_meta, m, a) == _ref_meses(m, a)
-        for m, a in casos
-    )
+    casos = [(e, _ref_meses(*e)) for e in entradas]
+    return _probar(meses_para_meta, casos, lambda r, e: r == e)
 
 
 _MENU_PRUEBA = {"Té": 20, "Galleta": 15, "Malteada": 70}
@@ -243,16 +324,9 @@ _CASOS_TICKET = [
 
 @_seguro
 def prueba_9(calcular_ticket):
-    if not callable(calcular_ticket):
-        return False
-    for pedido, menu in _CASOS_TICKET:
-        p, m = copy.deepcopy(pedido), copy.deepcopy(menu)
-        resultado = _llamar_con_limite(calcular_ticket, p, m)
-        if not _num_igual(resultado, _ref_ticket(pedido, menu)):
-            return False
-        if p != pedido or m != menu:  # no debe modificar lo que recibe
-            return False
-    return True
+    """Recorre el pedido, ignora productos fuera del menú, descuento en >= 200."""
+    casos = [((dict(p), dict(m)), _ref_ticket(p, m)) for p, m in _CASOS_TICKET]
+    return _probar(calcular_ticket, casos, _num_igual)
 
 
 _CASOS_RESUMEN = [
@@ -280,25 +354,18 @@ _CASOS_RESUMEN = [
 
 @_seguro
 def prueba_10(resumen_pedidos):
-    if not callable(resumen_pedidos):
-        return False
-    for pedidos, menu in _CASOS_RESUMEN:
-        p, m = copy.deepcopy(pedidos), copy.deepcopy(menu)
-        r = _llamar_con_limite(resumen_pedidos, p, m)
-        e = _ref_resumen(pedidos, menu)
-        if not isinstance(r, dict):
-            return False
-        if set(r.keys()) != set(e.keys()):
-            return False
-        if r["num_pedidos"] != e["num_pedidos"]:
-            return False
-        if not _num_igual(r["total_vendido"], e["total_vendido"]):
-            return False
-        if r["cliente_top"] != e["cliente_top"]:
-            return False
-        if p != pedidos or m != menu:
-            return False
-    return True
+    """Integrador: lista de diccionarios, acumulado por cliente."""
+    casos = [((copy.deepcopy(p), dict(m)), _ref_resumen(p, m)) for p, m in _CASOS_RESUMEN]
+
+    def comparar(r, e):
+        return (
+            isinstance(r, dict)
+            and set(r.keys()) == set(e.keys())
+            and r["num_pedidos"] == e["num_pedidos"]
+            and _num_igual(r["total_vendido"], e["total_vendido"])
+            and r["cliente_top"] == e["cliente_top"]
+        )
+    return _probar(resumen_pedidos, casos, comparar)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -309,11 +376,11 @@ def prueba_10(resumen_pedidos):
 EJERCICIOS = {
     1: ("Descuento para clientes frecuentes", ["total_a_pagar"], prueba_1),
     2: ("Nivel de lealtad", ["nivel_lealtad"], prueba_2),
-    3: ("Ventas de la semana (listas)", ["venta_lunes", "venta_domingo", "fin_de_semana"], prueba_3),
-    4: ("Total y promedio con for", ["total_semana", "promedio_diario"], prueba_4),
-    5: ("Días buenos y mejor día", ["dias_buenos", "mejor_dia"], prueba_5),
-    6: ("Actualizar el menú (diccionarios)", ["precio_capuchino", "menu_actualizado"], prueba_6),
-    7: ("Revisión de inventario", ["por_reabastecer", "total_unidades"], prueba_7),
+    3: ("Resumen de la semana (listas)", ["resumen_semana"], prueba_3),
+    4: ("Promedio de ventas con for", ["promedio_ventas"], prueba_4),
+    5: ("Días buenos", ["dias_buenos"], prueba_5),
+    6: ("Actualizar el menú (diccionarios)", ["actualizar_menu"], prueba_6),
+    7: ("Insumos por reabastecer", ["por_reabastecer"], prueba_7),
     8: ("Meta de ahorro con while", ["meses_para_meta"], prueba_8),
     9: ("Calcular un ticket", ["calcular_ticket"], prueba_9),
     10: ("Resumen de pedidos", ["resumen_pedidos"], prueba_10),

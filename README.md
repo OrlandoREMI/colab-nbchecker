@@ -49,13 +49,14 @@ checker.verificar_6(ventas_mensuales)
 from nbchecker import CheckerFundamentos
 checker = CheckerFundamentos()
 
+# cada ejercicio es una función; se pasa la función, sin paréntesis
 checker.verificar_1(total_a_pagar)
 checker.verificar_2(nivel_lealtad)
-checker.verificar_3(venta_lunes, venta_domingo, fin_de_semana)
-checker.verificar_4(total_semana, promedio_diario)
-checker.verificar_5(dias_buenos, mejor_dia)
-checker.verificar_6(precio_capuchino, menu_actualizado)
-checker.verificar_7(por_reabastecer, total_unidades)
+checker.verificar_3(resumen_semana)
+checker.verificar_4(promedio_ventas)
+checker.verificar_5(dias_buenos)
+checker.verificar_6(actualizar_menu)
+checker.verificar_7(por_reabastecer)
 checker.verificar_8(meses_para_meta)
 checker.verificar_9(calcular_ticket)
 checker.verificar_10(resumen_pedidos)
@@ -63,8 +64,9 @@ checker.resumen()
 ```
 
 El feedback solo indica si cada ejercicio **pasó** o **no pasó** las comprobaciones.
-Las funciones (ejercicios 2, 8, 9 y 10) se prueban con casos adicionales que el alumno no ve,
-y cada llamada se corta a los 3 segundos para proteger contra ciclos infinitos.
+Los 10 ejercicios son funciones: cada una se prueba con varios casos (incluidos casos límite que
+el alumno no ve) contra una solución de referencia, y se verifica que no modifique las listas o
+diccionarios que recibe. Cada llamada se corta a los 3 segundos para proteger contra ciclos infinitos.
 
 ### Calificación automática (CLI)
 
